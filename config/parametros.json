@@ -1,0 +1,56 @@
+{
+  "L": {
+    "min": 4,
+    "max": 8,
+    "decimais": 1,
+    "unidade": "m"
+  },
+  "d1": {
+    "min": 100,
+    "max": 200,
+    "decimais": 0,
+    "unidade": "mm"
+  },
+  "d2": {
+    "min": 400,
+    "max": 600,
+    "decimais": 0,
+    "unidade": "mm"
+  },
+  "d3": {
+    "min": 300,
+    "max": 500,
+    "decimais": 0,
+    "unidade": "mm"
+  },
+  "t": {
+    "min": 50,
+    "max": 100,
+    "decimais": 0,
+    "unidade": "mm"
+  },
+  "q1": {
+    "min": 30,
+    "max": 50,
+    "decimais": 0,
+    "unidade": "kN/m"
+  },
+  "q2": {
+    "min": 20,
+    "max": 40,
+    "decimais": 0,
+    "unidade": "kN/m"
+  },
+  "Ea": {
+    "min": 10,
+    "max": 20,
+    "decimais": 0,
+    "unidade": "GPa"
+  },
+  "Em": {
+    "min": 100,
+    "max": 200,
+    "decimais": 0,
+    "unidade": "GPa"
+  }
+}
