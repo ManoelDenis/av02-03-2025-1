@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VSCode
+.vscode/
+
+# Streamlit cache
+.streamlit/
+
+# Arquivos temporários
+*.tmp
+*.log
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos de ambiente virtual
+venv/
+.env/
+ENV/
+.venv/
+
+# Arquivos de backup do editor
+*~
+*.swp
+*.bak
+
+# Arquivos de exportação temporários
+*.html~
+
+# Outros
+.idea/
