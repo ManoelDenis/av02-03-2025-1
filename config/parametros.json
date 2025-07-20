@@ -1,56 +1,76 @@
 {
-  "L": {
-    "min": 4,
-    "max": 8,
-    "decimais": 1,
-    "unidade": "m"
-  },
-  "d1": {
-    "min": 100,
-    "max": 200,
-    "decimais": 0,
-    "unidade": "mm"
-  },
-  "d2": {
-    "min": 400,
-    "max": 600,
-    "decimais": 0,
-    "unidade": "mm"
-  },
-  "d3": {
-    "min": 300,
-    "max": 500,
-    "decimais": 0,
-    "unidade": "mm"
-  },
-  "t": {
-    "min": 50,
-    "max": 100,
-    "decimais": 0,
-    "unidade": "mm"
-  },
-  "q1": {
-    "min": 30,
-    "max": 50,
-    "decimais": 0,
-    "unidade": "kN/m"
-  },
-  "q2": {
-    "min": 20,
-    "max": 40,
-    "decimais": 0,
-    "unidade": "kN/m"
-  },
-  "Ea": {
-    "min": 10,
-    "max": 20,
-    "decimais": 0,
-    "unidade": "GPa"
-  },
-  "Em": {
-    "min": 100,
-    "max": 200,
-    "decimais": 0,
-    "unidade": "GPa"
+  "ordem": [
+    "L",
+    "d1",
+    "d3",
+    "d2",
+    "t",
+    "q1",
+    "q2",
+    "E_{aco}",
+    "E_{mad}",
+    "E_{teste}"
+  ],
+  "dados": {
+    "L": {
+      "min": 4.0,
+      "max": 8.0,
+      "decimais": 1,
+      "unidade": "m"
+    },
+    "d1": {
+      "min": 100.0,
+      "max": 200.0,
+      "decimais": 0,
+      "unidade": "mm"
+    },
+    "d3": {
+      "min": 300.0,
+      "max": 500.0,
+      "decimais": 0,
+      "unidade": "mm"
+    },
+    "d2": {
+      "min": 400.0,
+      "max": 600.0,
+      "decimais": 0,
+      "unidade": "mm"
+    },
+    "t": {
+      "min": 50.0,
+      "max": 100.0,
+      "decimais": 0,
+      "unidade": "mm"
+    },
+    "q1": {
+      "min": 30.0,
+      "max": 50.0,
+      "decimais": 0,
+      "unidade": "kN/m"
+    },
+    "q2": {
+      "min": 20.0,
+      "max": 40.0,
+      "decimais": 0,
+      "unidade": "kN/m"
+    },
+    "E_{aco}": {
+      "min": 10.0,
+      "max": 20.0,
+      "decimais": 0,
+      "unidade": "GPa"
+    },
+    "E_{mad}": {
+      "min": 100.0,
+      "max": 200.0,
+      "decimais": 0,
+      "unidade": "GPa"
+    },
+    "E_{teste}": {
+      "min": 0.0,
+      "max": 10.0,
+      "decimais": 0,
+      "unidade": "GPa"
+    }
   }
 }

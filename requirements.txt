@@ -1,3 +1,10 @@
+# Dependências para Firestore e dotenv
+python-dotenv
 streamlit
 markdown
 numpy
+vtk<9.4.0
+google-cloud-firestore
+
+# Drag and drop para Streamlit
+streamlit-sortables

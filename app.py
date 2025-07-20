@@ -1,11 +1,56 @@
 
-# ========== Funções utilitárias para cabeçalho ==========
+
+
+
+# ========== IMPORTS ========== 
+
+from dotenv import load_dotenv
+from google.cloud import firestore
+import google.auth.exceptions
+import streamlit as st
+from streamlit_sortables import sort_items
+import json
+from pathlib import Path
+import base64
+import markdown
+from datetime import datetime
+
+# Deve ser a primeira chamada do Streamlit
+st.set_page_config(page_title="Gerador de Avaliação Generalizado", layout="centered")
+
+
+# Carrega variáveis de ambiente do .env
+load_dotenv()
+
+# DEBUG: Mostra o valor da variável de ambiente de credenciais
+import os
+cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+st.info(f"GOOGLE_APPLICATION_CREDENTIALS = {cred_path}")
+
+# ========== Firestore utilitários e persistência ========== 
+
+def get_firestore_client():
+    try:
+        return firestore.Client()
+    except google.auth.exceptions.DefaultCredentialsError:
+        st.warning("Firestore não configurado corretamente. Usando armazenamento local.")
+        return None
+
+def save_firestore(collection, doc_id, data):
+    db = get_firestore_client()
+    if db:
+        db.collection(collection).document(doc_id).set(data)
+
+def load_firestore(collection, doc_id, default=None):
+    db = get_firestore_client()
+    if db:
+        doc = db.collection(collection).document(doc_id).get()
+        if doc.exists:
+            return doc.to_dict()
+    return default
+
 def load_header():
-    if HEADER_PATH.is_file():
-        with open(HEADER_PATH, encoding="utf-8") as f:
-            return json.load(f)
-    # Padrão inicial
-    return {
+    default = {
         "titulo": "RESISTÊNCIA DOS MATERIAIS I - AVALIAÇÃO PERSONALIZADA",
         "subtitulo": "",
         "campos": [
@@ -13,18 +58,55 @@ def load_header():
             {"label": "Matrícula", "placeholder": ""}
         ]
     }
+    header = load_firestore("avaliacao", "header", default=None)
+    if header:
+        return header
+    if HEADER_PATH.is_file():
+        with open(HEADER_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    return default
 
 def save_header(header):
+    save_firestore("avaliacao", "header", header)
     with open(HEADER_PATH, "w", encoding="utf-8") as f:
         json.dump(header, f, indent=2, ensure_ascii=False)
 
-import streamlit as st
-import json
-import os
-from pathlib import Path
-import base64
-import markdown
-from datetime import datetime
+def load_markdown():
+    md = load_firestore("avaliacao", "markdown", default=None)
+    if md is not None:
+        return md.get("content", "")
+    if MD_PATH.is_file():
+        with open(MD_PATH, encoding="utf-8") as f:
+            return f.read()
+    return ""
+
+def save_markdown(content):
+    save_firestore("avaliacao", "markdown", {"content": content})
+    with open(MD_PATH, "w", encoding="utf-8") as f:
+        f.write(content)
+
+def load_params():
+    params_data = load_firestore("avaliacao", "params", default=None)
+    if params_data:
+        # Se for o novo formato, retorna dict com ordem e dados
+        if isinstance(params_data, dict) and "ordem" in params_data and "dados" in params_data:
+            return params_data
+        # Compatibilidade retroativa: só dict de params
+        return {"ordem": list(params_data.keys()), "dados": params_data}
+    if PARAMS_PATH.is_file():
+        with open(PARAMS_PATH, encoding="utf-8") as f:
+            params_data = json.load(f)
+            if isinstance(params_data, dict) and "ordem" in params_data and "dados" in params_data:
+                return params_data
+            return {"ordem": list(params_data.keys()), "dados": params_data}
+    return {"ordem": [], "dados": {}}
+
+def save_params(params):
+    save_firestore("avaliacao", "params", params)
+    with open(PARAMS_PATH, "w", encoding="utf-8") as f:
+        json.dump(params, f, indent=2, ensure_ascii=False)
+
+
 
 
 CONFIG_DIR = Path("config")
@@ -35,25 +117,7 @@ PARAMS_PATH = CONFIG_DIR / "parametros.json"
 HEADER_PATH = CONFIG_DIR / "header.json"
 
 # ========== Funções utilitárias ==========
-def load_markdown():
-    if MD_PATH.is_file():
-        with open(MD_PATH, encoding="utf-8") as f:
-            return f.read()
-    return ""
 
-def save_markdown(content):
-    with open(MD_PATH, "w", encoding="utf-8") as f:
-        f.write(content)
-
-def load_params():
-    if PARAMS_PATH.is_file():
-        with open(PARAMS_PATH, encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-def save_params(params):
-    with open(PARAMS_PATH, "w", encoding="utf-8") as f:
-        json.dump(params, f, indent=2, ensure_ascii=False)
 
 def save_image(uploaded_file):
     IMAGES_DIR.mkdir(parents=True, exist_ok=True)
@@ -83,8 +147,10 @@ def embed_images_in_markdown(md_content):
         style = "max-width:800px;width:100%;display:block;margin:32px auto;"
         # Aplica dimensões customizadas se existirem
         dims = img_dims.get(Path(path).name, {})
-        if dims.get("width"): style += f"width:{dims['width']}px;max-width:100%;"
-        if dims.get("height"): style += f"height:{dims['height']}px;"
+        if dims.get("width"):
+            style += f"width:{dims['width']}px;max-width:100%;"
+        if dims.get("height"):
+            style += f"height:{dims['height']}px;"
         if img_file.is_file():
             with open(img_file, "rb") as f:
                 img_b64 = base64.b64encode(f.read()).decode()
@@ -124,20 +190,21 @@ def area_professor():
     for i in range(n):
         cols = st.columns([3,3,1])
         with cols[0]:
-            label = st.text_input(f"Rótulo do campo {i+1}", value=campos_temp[i].get("label",""), key=f"header_label_{i}")
+            label = st.text_input("Rótulo", value=campos_temp[i].get("label",""), key=f"header_label_{i}")
         with cols[1]:
-            placeholder = st.text_input(f"Placeholder {i+1}", value=campos_temp[i].get("placeholder",""), key=f"header_placeholder_{i}")
+            placeholder = st.text_input("Placeholder", value=campos_temp[i].get("placeholder",""), key=f"header_placeholder_{i}")
         with cols[2]:
+            st.markdown("<div style='height: 1.9em'></div>", unsafe_allow_html=True)
             if st.session_state['remover_idx'] == i:
-                if st.button("Confirmar remoção", key=f"btn_confirma_remover_{i}"):
+                if st.button("✅", key=f"btn_confirma_remover_{i}", help="Confirmar remoção"):
                     campos_temp.pop(i)
                     st.session_state['remover_idx'] = None
                     st.rerun()
-                if st.button("Cancelar", key=f"btn_cancela_remover_{i}"):
+                if st.button("❌", key=f"btn_cancela_remover_{i}", help="Cancelar remoção"):
                     st.session_state['remover_idx'] = None
                     st.rerun()
             else:
-                if st.button("Remover", key=f"btn_remover_{i}"):
+                if st.button("🗑️", key=f"btn_remover_{i}", help="Remover campo"):
                     st.session_state['remover_idx'] = i
                     st.rerun()
         campos_editados.append({"label": label.strip(), "placeholder": placeholder.strip()})
@@ -230,9 +297,86 @@ def area_professor():
                 img_dims[img.name] = {"width": width if width > 0 else None, "height": height if height > 0 else None}
             elif img.name in img_dims:
                 del img_dims[img.name]
-    # Parâmetros
-    st.subheader("Parâmetros Aleatórios (JSON)")
-    params_str = st.text_area("Edite o JSON dos parâmetros", json.dumps(load_params(), indent=2, ensure_ascii=False), height=250)
+    # Parâmetros (edição visual)
+    st.subheader("Parâmetros Aleatórios")
+    if 'parametros_temp' not in st.session_state or 'param_order' not in st.session_state:
+        params_struct = load_params()
+        param_order = params_struct.get('ordem', [])
+        params_dict = params_struct.get('dados', {})
+        # Garante que todos os parâmetros estejam na ordem
+        param_order = [k for k in param_order if k in params_dict]
+        for k in params_dict:
+            if k not in param_order:
+                param_order.append(k)
+        st.session_state['param_order'] = param_order
+        st.session_state['parametros_temp'] = [
+            {'nome': k, **params_dict[k]} for k in param_order
+        ]
+    parametros_temp = st.session_state['parametros_temp']
+    param_order = st.session_state['param_order']
+    # (Removido bloco duplicado de expanders aqui)
+
+    # Botão para alternar visibilidade da lista de ordenação
+    st.markdown("---")
+    show_sort_list = st.toggle(
+        label="🔀 Ordenar parâmetros (arraste para reordenar)",
+        value=st.session_state.get('show_sort_list', False),
+        key="toggle_sort_list_btn",
+        help="Mostrar/ocultar lista de ordenação"
+    )
+    if show_sort_list:
+        param_names = [p['nome'] for p in parametros_temp if p['nome']]
+        if param_names:
+            sorted_names = sort_items(param_names, direction="vertical", key="sortable_param_list")
+            # Atualiza ordem se mudou
+            if sorted_names != param_names:
+                idx_map = [param_names.index(n) for n in sorted_names]
+                parametros_temp = [parametros_temp[i] for i in idx_map]
+                param_order = [param_order[i] for i in idx_map]
+                st.session_state['parametros_temp'] = parametros_temp
+                st.session_state['param_order'] = param_order
+        else:
+            st.info("Adicione parâmetros para poder ordená-los.")
+    # Renderiza os expanders na ordem correta (apenas uma vez, após a lista de ordenação)
+    for i, param in enumerate(parametros_temp):
+        with st.expander(f"{param['nome']} | {param['min']} - {param['max']} {param['unidade']} ({param['decimais']} decimais)", expanded=True):
+            cols = st.columns([2,2,2,2,2,1])
+            with cols[0]:
+                nome = st.text_input("Nome", value=param.get('nome',''), key=f"param_nome_{i}")
+            casas_decimais = param.get('decimais', 0)
+            formato = f"%.{casas_decimais}f"
+            passo = 10**-casas_decimais if casas_decimais > 0 else 1.0
+            with cols[1]:
+                minv = st.number_input("Mínimo", value=float(param.get('min',0)), key=f"param_min_{i}", step=passo, format=formato)
+            with cols[2]:
+                maxv = st.number_input("Máximo", value=float(param.get('max',0)), key=f"param_max_{i}", step=passo, format=formato)
+            with cols[3]:
+                decimais = st.number_input("Decimais", value=param.get('decimais',0), key=f"param_dec_{i}", min_value=0, max_value=6, step=1)
+            with cols[4]:
+                unidade = st.text_input("Unidade", value=param.get('unidade',''), key=f"param_uni_{i}")
+            with cols[5]:
+                st.markdown("<div style='height: 1.9em'></div>", unsafe_allow_html=True)
+                if st.button("🗑️", key=f"btn_remover_param_{i}", help="Remover parâmetro"):
+                    parametros_temp.pop(i)
+                    param_order.pop(i)
+                    st.session_state['parametros_temp'] = parametros_temp
+                    st.session_state['param_order'] = param_order
+                    st.experimental_rerun() if hasattr(st, 'experimental_rerun') else st.rerun()
+            # Atualiza valores editados
+            parametros_temp[i] = {
+                'nome': nome.strip(),
+                'min': minv,
+                'max': maxv,
+                'decimais': decimais,
+                'unidade': unidade.strip()
+            }
+            param_order[i] = nome.strip()
+    if st.button("Adicionar parâmetro"):
+        parametros_temp.append({'nome': '', 'min': 0, 'max': 0, 'decimais': 0, 'unidade': ''})
+        param_order.append('')
+        st.session_state['parametros_temp'] = parametros_temp
+        st.session_state['param_order'] = param_order
+        st.experimental_rerun() if hasattr(st, 'experimental_rerun') else st.rerun()
     # Botão único de salvar tudo
     if st.button("Salvar Tudo"):
         # Salva cabeçalho
@@ -243,15 +387,23 @@ def area_professor():
         if uploaded_imgs:
             for img in uploaded_imgs:
                 save_image(img)
-        # Salva parâmetros
+        # Salva parâmetros (com ordem)
         try:
-            params = json.loads(params_str)
-            save_params(params)
+            # Converte lista para dict
+            params_dict = {p['nome']: {
+                'min': p['min'],
+                'max': p['max'],
+                'decimais': p['decimais'],
+                'unidade': p['unidade']
+            } for p in parametros_temp if p['nome']}
+            # Remove nomes vazios da ordem
+            param_order_clean = [n for n in param_order if n in params_dict]
+            save_params({'ordem': param_order_clean, 'dados': params_dict})
             # Salva dimensões das imagens
             save_img_dimensions(img_dims)
             st.success("Cabeçalho, enunciado, imagens, parâmetros e dimensões salvos!")
         except Exception as e:
-            st.error(f"Erro ao salvar parâmetros (JSON): {e}")
+            st.error(f"Erro ao salvar parâmetros: {e}")
     st.info("Ao salvar, a avaliação ativa será atualizada para os alunos.")
 
 # ========== Área do Aluno ==========
@@ -270,8 +422,10 @@ def gerar_parametros(params, seed):
 def area_aluno():
     st.header("Geração de Avaliação Personalizada")
     md_content = load_markdown()
-    params = load_params()
+    params_struct = load_params()
     header = load_header()
+    param_order = params_struct.get('ordem', [])
+    params = params_struct.get('dados', {})
     if not md_content or not params:
         st.warning("Nenhuma avaliação publicada pelo professor.")
         return
@@ -282,11 +436,19 @@ def area_aluno():
             if 0 <= seed <= 99:
                 param_vals = gerar_parametros(params, seed)
                 # Monta tabela de parâmetros
-                tabela = "<table><tr><th>Parâmetro</th><th>Valor</th><th>Unidade</th></tr>"
-                for nome, cfg in params.items():
+                # Inclui KaTeX para renderização de LaTeX
+                katex_header = """
+                <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'>
+                <script defer src='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'></script>
+                <script defer src='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js' onload="renderMathInElement(document.body, {delimiters: [{left: '$', right: '$', display: false}]});"></script>
+                """
+                tabela = katex_header + "<table><tr><th>Parâmetro</th><th>Valor</th><th>Unidade</th></tr>"
+                for nome in param_order:
+                    cfg = params[nome]
                     val = param_vals[nome]
                     val_str = f"{val:.{cfg['decimais']}f}".replace('.', ',') if cfg['decimais'] > 0 else str(int(val))
-                    tabela += f"<tr><td>{nome}</td><td>{val_str}</td><td>{cfg['unidade']}</td></tr>"
+                    # Renderiza nome do parâmetro como LaTeX inline
+                    tabela += f"<tr><td>$ {nome} $</td><td>{val_str}</td><td>{cfg['unidade']}</td></tr>"
                 tabela += "</table>"
                 # Monta campos do cabeçalho
                 campos = header.get("campos", [])
@@ -299,7 +461,7 @@ def area_aluno():
                         campo = campos[i]
                         label = campo.get("label", "")
                         placeholder = campo.get("placeholder", "")
-                        campos_html += f"<div style='flex:1;display:flex;align-items:center;justify-content:center;'>"
+                        campos_html += "<div style='flex:1;display:flex;align-items:center;justify-content:center;'>"
                         campos_html += f"<label style='font-weight:bold;display:inline-block;width:auto;margin-right:8px'>{label}:</label> "
                         campos_html += f"<input type='text' placeholder='{placeholder}' maxlength='40' style='border:none;border-bottom:1px solid #aaa;background:transparent;width:70%;font-size:1em;margin-right:0px;text-align:center;'>"
                         campos_html += "</div>"
@@ -308,7 +470,7 @@ def area_aluno():
                         campo = campos[i+1]
                         label = campo.get("label", "")
                         placeholder = campo.get("placeholder", "")
-                        campos_html += f"<div style='flex:1;display:flex;align-items:center;justify-content:center;'>"
+                        campos_html += "<div style='flex:1;display:flex;align-items:center;justify-content:center;'>"
                         campos_html += f"<label style='font-weight:bold;display:inline-block;width:auto;margin-right:8px'>{label}:</label> "
                         campos_html += f"<input type='text' placeholder='{placeholder}' maxlength='40' style='border:none;border-bottom:1px solid #aaa;background:transparent;width:70%;font-size:1em;margin-right:0px;text-align:center;'>"
                         campos_html += "</div>"
@@ -323,12 +485,14 @@ def area_aluno():
                 {f"<div style='text-align:center;font-size:1.25em;color:#2c3e50;margin-bottom:0.7em'>{header.get('subtitulo','')}</div>" if header.get('subtitulo','') else ''}
                 <div class='ident-aluno'>
                 {campos_html}
-                <span class='data'>Data/hora da geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}</span>
                 </div>
                 <h3>Enunciado</h3>
                 <div class='enunciado-justificado'>{markdown_to_html(md_content)}</div>
                 <hr><h3>Parâmetros Gerados</h3>{tabela}
-                <hr><p style='color:#888'>Arquivo gerado automaticamente para uso didático.</p></div></body></html>
+                <hr><div style='display:flex;justify-content:space-between;color:#888;font-size:0.98em;'>
+                  <span>Arquivo gerado automaticamente para uso didático.</span>
+                  <span>Data/hora da geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}</span>
+                </div></div></body></html>
                 """
                 file_name = f"Avaliacao_Personalizada_Seed_{seed}.html"
                 st.success(f"Avaliação gerada para seed {seed}!")
@@ -344,7 +508,6 @@ def area_aluno():
             st.warning("Digite um número válido para o seed.")
 
 # ========== Página principal ==========
-st.set_page_config(page_title="Gerador de Avaliação Generalizado", layout="centered")
 menu = st.sidebar.radio("Selecione o modo:", ["Aluno", "Professor (Configuração)"])
 if menu == "Professor (Configuração)":
     area_professor()
