@@ -18,7 +18,11 @@ __pycache__/
 Thumbs.db
 
 # Arquivos de ambiente virtual
+
+# Credenciais do Firestore (NÃO versionar)
+config/resmat-uel-*.json
 venv/
+.env
 .env/
 ENV/
 .venv/
