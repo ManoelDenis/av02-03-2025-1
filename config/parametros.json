@@ -1,15 +1,14 @@
 {
   "ordem": [
     "L",
-    "d1",
-    "d3",
-    "d2",
+    "d_1",
+    "d_2",
+    "d_3",
     "t",
-    "q1",
-    "q2",
-    "E_{aco}",
+    "P",
+    "q",
     "E_{mad}",
-    "E_{teste}"
+    "E_{aco}"
   ],
   "dados": {
     "L": {
@@ -18,21 +17,21 @@
       "decimais": 1,
       "unidade": "m"
     },
-    "d1": {
+    "d_1": {
       "min": 100.0,
       "max": 200.0,
       "decimais": 0,
       "unidade": "mm"
     },
-    "d3": {
-      "min": 300.0,
-      "max": 500.0,
+    "d_2": {
+      "min": 400.0,
+      "max": 600.0,
       "decimais": 0,
       "unidade": "mm"
     },
-    "d2": {
-      "min": 400.0,
-      "max": 600.0,
+    "d_3": {
+      "min": 300.0,
+      "max": 500.0,
       "decimais": 0,
       "unidade": "mm"
     },
@@ -42,33 +41,27 @@
       "decimais": 0,
       "unidade": "mm"
     },
-    "q1": {
-      "min": 30.0,
-      "max": 50.0,
+    "P": {
+      "min": 50.0,
+      "max": 100.0,
       "decimais": 0,
-      "unidade": "kN/m"
+      "unidade": "kN"
     },
-    "q2": {
-      "min": 20.0,
+    "q": {
+      "min": 10.0,
       "max": 40.0,
       "decimais": 0,
       "unidade": "kN/m"
     },
-    "E_{aco}": {
+    "E_{mad}": {
       "min": 10.0,
       "max": 20.0,
       "decimais": 0,
       "unidade": "GPa"
     },
-    "E_{mad}": {
+    "E_{aco}": {
       "min": 100.0,
       "max": 200.0,
-      "decimais": 0,
-      "unidade": "GPa"
-    },
-    "E_{teste}": {
-      "min": 0.0,
-      "max": 10.0,
       "decimais": 0,
       "unidade": "GPa"
     }

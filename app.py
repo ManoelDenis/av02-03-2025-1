@@ -1,7 +1,3 @@
-
-
-
-
 # ========== IMPORTS ========== 
 
 from dotenv import load_dotenv
@@ -25,7 +21,7 @@ load_dotenv()
 # DEBUG: Mostra o valor da variável de ambiente de credenciais
 import os
 cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-st.info(f"GOOGLE_APPLICATION_CREDENTIALS = {cred_path}")
+# st.info(f"GOOGLE_APPLICATION_CREDENTIALS = {cred_path}")
 
 # ========== Firestore utilitários e persistência ========== 
 
@@ -490,7 +486,7 @@ def area_aluno():
                 <div class='enunciado-justificado'>{markdown_to_html(md_content)}</div>
                 <hr><h3>Parâmetros Gerados</h3>{tabela}
                 <hr><div style='display:flex;justify-content:space-between;color:#888;font-size:0.98em;'>
-                  <span>Arquivo gerado automaticamente para uso didático.</span>
+                  <span>Arquivo gerado automaticamente para uso didático. <strong>Seed:</strong> {seed}</span>
                   <span>Data/hora da geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}</span>
                 </div></div></body></html>
                 """
